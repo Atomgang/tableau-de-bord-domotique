@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="dom.css">
+    <title>Entrainnement JavaScript</title>
+  </head>
+  <body class="container">
+    <h1>Bienvenue sur votre tableau de bord domotique</h1>
+    <div class="home-equip">
+      <h2>État de la maison</h2>
+      <p class="subtitle">Sélectionnez une pièce pour voir les données en temps réel</p>
+      <select id="room-select">
+        <option value="salon">Salon</option>
+        <option value="cuisine">Cuisine</option>
+        <option value="chambre1">Chambre 1</option>
+        <option value="chambre2">Chambre 2</option>
+        <option value="chambre3">Chambre 3</option>
+        <option value="salleDeBain">Salle de bain</option>  
+      </select>
+      <div class="rData">
+        <div id="status" class="status">Statut : <span id="status-value">Connexion en cours...</span></div>
+      <div class="temp icons">
+        <img src="/domotic_dashboard/html-svg-icons/assets/icons/temperature.svg" alt="temperature icon" />
+      Température: <span id="temp-value">22</span>°C
+      </div>
+      <div class="humidity icons">
+        <img src="/domotic_dashboard/html-svg-icons/assets/icons/humidity.svg" alt="humidity icon" />
+      Humidité: <span id="humidity-value">50</span>%
+      </div>
+      <div class="lumen icons">
+        <img src="/domotic_dashboard/html-svg-icons/assets/icons/brightness.svg" alt="luminosity icon" />
+      Luminosité: <span id="lumen-value">10000</span>lx
+      </div>
+
+      <div class="CO2 icons">
+        <img src="/domotic_dashboard/html-svg-icons/assets/icons/home.svg" alt="luminosity icon" />
+      CO2: <span id="CO2-value">10000</span>ppm
+      </div>
+      <div class="presence icons">
+        <img src="/domotic_dashboard/html-svg-icons/assets/icons/occuper.svg" alt="presence icon" />
+      Présence: <span id="presence-value">Non</span>
+      </div>
+      </div>
+    </div>
+        <script>
+      /* You can,
+      *nest comments *\/ by escaping slashes */
+
+      const maison = {
+        name: "Maison",
+        rooms: ["Salon", "Cuisine", "Chambre 1", "Chambre 2", "Chambre 3", "Salle de bain"],
+        address: "123 Rue de la Domotique, Ville, Pays",
+        owner: "John Doe",
+      
+      salon : {
+        name: "Salon",
+        devices: ["Lampe", "Télévision", "Enceinte"],
+        temperature: 25,
+        humidity: 50,
+        luminosity: 10000,
+        CO2: 400,
+        presence: false
+      },
+
+      cuisine : {
+        name: "Cuisine",
+        devices: ["Réfrigérateur", "Four", "Lave-vaisselle"],
+        temperature: 20,
+        humidity: 60,
+        luminosity: 8000,
+        CO2: 500,
+        presence: true
+      },
+
+      chambre1 : {
+        name: "Chambre",
+        devices: ["Lampe de chevet", "Ventilateur", "Chargeur"],
+        temperature: 18,
+        humidity: 40,
+        luminosity: 2000,
+        CO2: 300,
+        presence: false
+      },
+
+      chambre2 : {
+        name: "Chambre 2",
+        devices: ["Lampe de chevet", "Ventilateur", "Chargeur"],
+        temperature: 19,
+        humidity: 45,
+        luminosity: 2500,
+        CO2: 350,
+        presence: true
+      },
+
+      chambre3 : {
+        name: "Chambre 3",
+        devices: ["Lampe de chevet", "Ventilateur", "Chargeur"],
+        temperature: 21,
+        humidity: 55,
+        luminosity: 3000,
+        CO2: 450,
+        presence: false
+      },
+
+      salleDeBain : {
+        name: "Salle de bain",
+        devices: ["Sèche-cheveux", "Miroir chauffant", "Lave-linge"],
+        temperature: 24,
+        humidity: 70,
+        luminosity: 4000,
+        CO2: 600,
+        presence: true
+      }
+      };
+
+      console.log("Bienvenue sur votre tableau de bord domotique");
+
+       document.addEventListener("DOMContentLoaded", () => {
+    // Charger les données initiales
+    fetchData();
+
+    // Mettre à jour les données toutes les 5 secondes
+    setInterval(fetchData, 5000);
+
+    document.getElementById("room-select").addEventListener("change", (event) => {
+        const selectedRoom = event.target.value;
+        // Pour l'instant, nous utilisons les données statiques, mais nous pouvons les remplacer par des données filtrées depuis l'API
+        afficherPiece(maison[selectedRoom]);
+      });
+    });
+
+      // Fonction pour récupérer les données des capteurs via fetch
+      async function fetchData() {
+        try {
+          // Si le HTML est servi par le serveur, on utilise une URL relative
+          const apiUrl = window.location.origin && window.location.origin !== 'null'
+            ? `${window.location.origin}/api/sensors`
+            : 'http://localhost:3002/api/sensors';
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error('Erreur réseau : ' + response.status);
+          }
+          const data = await response.json();
+          console.log('Données reçues :', data);
+
+          // Mettre à jour l'affichage avec les données réelles
+          document.getElementById("temp-value").textContent = data.temperature.toFixed(1) || 22;
+          document.getElementById("humidity-value").textContent = data.humidity.toFixed(1) || 50;
+          document.getElementById("lumen-value").textContent = Math.round(data.luminosity) || 10000;
+          document.getElementById("CO2-value").textContent = Math.round(data.CO2) || 400;
+          document.getElementById("presence-value").textContent = data.presence ? "Oui" : "Non";
+
+          // Mettre à jour le statut
+          document.getElementById("status-value").textContent = "Connecté";
+          document.getElementById("status-value").style.color = "green";
+        } catch (error) {
+          console.error('Erreur lors de la récupération des données :', error);
+          // En cas d'erreur, afficher un message d'erreur dans le statut
+          document.getElementById("status-value").textContent = "Déconnecté - " + error.message;
+          document.getElementById("status-value").style.color = "red";
+        }
+      }
+
+      // Fonctions pour mettre à jour les valeurs depuis les capteurs
+     function afficherPiece(rooms) {
+      document.getElementById("temp-value").textContent     = rooms.temperature;
+      document.getElementById("humidity-value").textContent = rooms.humidity;
+      document.getElementById("lumen-value").textContent    = rooms.luminosity;
+      document.getElementById("CO2-value").textContent      = rooms.CO2;
+      document.getElementById("presence-value").textContent = rooms.presence ? "Oui" : "Non";
+      };
+
+     
+
+      // Exemple d'utilisation : appelle ces fonctions depuis le code de capteur
+      // updateTemperature(23.5);
+      // updateHumidity(45);
+      // updateLuminosity(5000);
+      // updatePresence(true);
+    </script>
+  </body>
