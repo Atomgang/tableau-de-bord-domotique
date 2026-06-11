@@ -65,7 +65,7 @@ python3 arduino_reader.py
 ## Prochaines étapes
 
 - Connecter de vrais capteurs à l'Arduino (DHT11 pour température/humidité, etc.)
-- Ajouter WebSocket pour des mises à jour en temps réel
+- Ajouter Fetch pour des mises à jour toutes les 5 secondes.
 - Stocker les données dans une base de données
 - Ajouter des contrôles (allumer/éteindre des appareils)
 
