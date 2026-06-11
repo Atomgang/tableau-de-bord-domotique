@@ -1,0 +1,16 @@
+[Unit]
+Description=Raspberry Pi Domotic Server
+After=network.target
+
+[Service]
+User=mastangai
+WorkingDirectory=/home/mastangai/domotique-env
+ExecStart=/usr/bin/node /home/mastangai/domotique-env/rpi-server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

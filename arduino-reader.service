@@ -1,0 +1,15 @@
+[Unit]
+Description=Arduino Reader for Domotic Dashboard
+After=network.target
+
+[Service]
+User=mastangai
+WorkingDirectory=/home/mastangai/domotique-env
+ExecStart=/usr/bin/python3 /home/mastangai/domotique-env/arduino_reader.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
