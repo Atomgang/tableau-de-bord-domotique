@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tableau de Bord Domotique</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0f13;
+      --surface: #13181f;
+      --surface2: #1a2030;
+      --border: #232c3a;
+      --accent: #3ee8b5;
+      --accent2: #3a8ef6;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --text: #e8edf5;
+      --muted: #5a6a82;
+      --card-radius: 16px;
+      --refresh: 5s;
+    }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(62,232,181,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 10% 90%, rgba(58,142,246,0.06) 0%, transparent 60%);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .status-dot.ok { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+    .status-dot.error { background: var(--danger); }
+    .status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .api-config {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .api-config label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .api-config input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .api-config input:focus { border-color: var(--accent); }
+
+    .api-config select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--accent); color: var(--bg); }
+    .btn.active { background: var(--accent); color: var(--bg); }
+
+    .room-nav {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .room-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.45rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .room-btn:hover { border-color: var(--accent2); color: var(--text); }
+    .room-btn.active {
+      background: linear-gradient(135deg, rgba(62,232,181,0.15), rgba(58,142,246,0.15));
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .card:hover { border-color: var(--surface2); transform: translateY(-2px); }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-card, var(--accent)), transparent);
+      opacity: 0.6;
+    }
+
+    .card.temp   { --accent-card: #f97316; }
+    .card.hum    { --accent-card: #3a8ef6; }
+    .card.lux    { --accent-card: #facc15; }
+    .card.co2    { --accent-card: #a78bfa; }
+    .card.pres   { --accent-card: #3ee8b5; }
+
+    .card-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .card-value {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 2.5rem;
+      line-height: 1;
+      color: var(--text);
+      transition: color 0.4s;
+    }
+
+    .card-unit {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+
+    .card-bar {
+      margin-top: 1rem;
+      height: 3px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .card-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent-card, var(--accent));
+      transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .card-status {
+      font-size: 0.68rem;
+      margin-top: 0.6rem;
+      color: var(--muted);
+    }
+    .card-status.warn { color: var(--warn); }
+    .card-status.danger { color: var(--danger); }
+    .card-status.ok { color: var(--accent); }
+
+    .presence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0.3rem 0;
+    }
+
+    .presence-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.4s;
+    }
+    .presence-dot.yes { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 0.68rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .shimmer {
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* progress ring for refresh countdown */
+    .refresh-ring {
+      width: 14px; height: 14px;
+      transform: rotate(-90deg);
+    }
+    .refresh-ring circle {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 2;
+    }
+    .refresh-ring .progress {
+      stroke: var(--accent);
+      stroke-dasharray: 38;
+      stroke-dashoffset: 38;
+      transition: stroke-dashoffset 1s linear;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Domotique</h1>
+    <p>Tableau de bord · Temps réel</p>
+  </div>
+  <div class="status-bar">
+    <div class="status-dot loading" id="status-dot"></div>
+    <span id="status-text">Connexion...</span>
+    <svg class="refresh-ring" viewBox="0 0 14 14">
+      <circle cx="7" cy="7" r="6"/>
+      <circle class="progress" id="ring-progress" cx="7" cy="7" r="6"/>
+    </svg>
+    <span id="last-update">--:--:--</span>
+  </div>
+</header>
+
+<!-- Configuration API -->
+<div class="api-config">
+  <label>URL API</label>
+  <input type="text" id="api-url" value="http://raspberrypi.local:5000/api/sensors" placeholder="http://raspberrypi.local:5000/api/sensors" />
+  <label>Intervalle</label>
+  <select id="refresh-interval">
+    <option value="3000">3 s</option>
+    <option value="5000" selected>5 s</option>
+    <option value="10000">10 s</option>
+    <option value="30000">30 s</option>
+  </select>
+  <button class="btn active" id="toggle-btn" onclick="togglePolling()">⏸ Pause</button>
+  <button class="btn" onclick="fetchNow()">↺ Actualiser</button>
+</div>
+
+<!-- Navigation pièces -->
+<div class="room-nav" id="room-nav">
+  <button class="room-btn active" data-room="salon">Salon</button>
+  <button class="room-btn" data-room="cuisine">Cuisine</button>
+  <button class="room-btn" data-room="chambre1">Chambre 1</button>
+  <button class="room-btn" data-room="chambre2">Chambre 2</button>
+  <button class="room-btn" data-room="chambre3">Chambre 3</button>
+  <button class="room-btn" data-room="salleDeBain">Salle de bain</button>
+</div>
+
+<!-- Cartes capteurs -->
+<div class="grid">
+  <div class="card temp">
+    <span class="card-icon">🌡</span>
+    <div class="card-label">Température</div>
+    <div class="card-value" id="temp-value">--</div>
+    <div class="card-unit">°C</div>
+    <div class="card-bar"><div class="card-bar-fill" id="temp-bar" style="width:0%"></div></div>
+    <div class="card-status" id="temp-status">—</div>
+  </div>
+
+  <div class="card hum">
+    <span class="card-icon">💧</span>
+    <div class="card-label">Humidité</div>
+    <div class="card-value" id="humidity-value">--</div>
+    <div class="card-unit">%</div>
+    <div class="card-bar"><div class="card-bar-fill" id="humidity-bar" style="width:0%"></div></div>
+    <div class="card-status" id="humidity-status">—</div>
+  </div>
+
+  <div class="card lux">
+    <span class="card-icon">☀️</span>
+    <div class="card-label">Luminosité</div>
+    <div class="card-value" id="lumen-value">--</div>
+    <div class="card-unit">lx</div>
+    <div class="card-bar"><div class="card-bar-fill" id="lumen-bar" style="width:0%"></div></div>
+    <div class="card-status" id="lumen-status">—</div>
+  </div>
+
+  <div class="card co2">
+    <span class="card-icon">🫁</span>
+    <div class="card-label">CO₂</div>
+    <div class="card-value" id="CO2-value">--</div>
+    <div class="card-unit">ppm</div>
+    <div class="card-bar"><div class="card-bar-fill" id="co2-bar" style="width:0%"></div></div>
+    <div class="card-status" id="co2-status">—</div>
+  </div>
+
+  <div class="card pres">
+    <span class="card-icon">🚶</span>
+    <div class="card-label">Présence</div>
+    <div class="card-value" style="font-size:1.4rem; padding-top:0.3rem;">
+      <div class="presence-badge">
+        <div class="presence-dot" id="presence-dot"></div>
+        <span id="presence-value">Non</span>
+      </div>
+    </div>
+    <div class="card-unit" style="margin-top:1rem;">Capteur PIR</div>
+    <div class="card-status" id="presence-status">—</div>
+  </div>
+</div>
+
+<footer>
+  <span>Rafraîchissement auto · <span id="interval-label">5s</span></span>
+  <span id="error-msg" style="color: var(--danger);"></span>
+  <span>Mode : <span id="mode-label" style="color:var(--accent)">Démo</span></span>
+</footer>
+
+<script>
+  // ─── Données de démo (fallback si l'API est inaccessible) ───────────────────
+  const demoData = {
+    salon:       { temperature: 25, humidity: 50, luminosity: 10000, CO2: 400, presence: false },
+    cuisine:     { temperature: 20, humidity: 60, luminosity: 8000,  CO2: 500, presence: true  },
+    chambre1:    { temperature: 18, humidity: 40, luminosity: 2000,  CO2: 300, presence: false },
+    chambre2:    { temperature: 19, humidity: 45, luminosity: 2500,  CO2: 350, presence: true  },
+    chambre3:    { temperature: 21, humidity: 55, luminosity: 3000,  CO2: 450, presence: false },
+    salleDeBain: { temperature: 24, humidity: 70, luminosity: 4000,  CO2: 600, presence: true  },
+  };
+
+  // ─── État ────────────────────────────────────────────────────────────────────
+  let currentRoom = 'salon';
+  let polling = true;
+  let pollingTimer = null;
+  let countdownTimer = null;
+  let usingDemo = true;
+
+  // ─── Navigation pièces ───────────────────────────────────────────────────────
+  document.getElementById('room-nav').addEventListener('click', e => {
+    const btn = e.target.closest('.room-btn');
+    if (!btn) return;
+    document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentRoom = btn.dataset.room;
+    fetchNow();
+  });
+
+  // ─── Intervalle ──────────────────────────────────────────────────────────────
+  document.getElementById('refresh-interval').addEventListener('change', () => {
+    if (polling) { stopPolling(); startPolling(); }
+    updateIntervalLabel();
+  });
+
+  function updateIntervalLabel() {
+    const ms = parseInt(document.getElementById('refresh-interval').value);
+    document.getElementById('interval-label').textContent = (ms / 1000) + 's';
+  }
+
+  // ─── Toggle polling ──────────────────────────────────────────────────────────
+  function togglePolling() {
+    polling ? stopPolling() : startPolling();
+  }
+
+  function startPolling() {
+    polling = true;
+    document.getElementById('toggle-btn').textContent = '⏸ Pause';
+    document.getElementById('toggle-btn').classList.add('active');
+    scheduleNext();
+  }
+
+  function stopPolling() {
+    polling = false;
+    clearTimeout(pollingTimer);
+    clearInterval(countdownTimer);
+    document.getElementById('toggle-btn').textContent = '▶ Reprendre';
+    document.getElementById('toggle-btn').classList.remove('active');
+    setRingProgress(0);
+  }
+
+  function scheduleNext() {
+    if (!polling) return;
+    const ms = parseInt(document.getElementById('refresh-interval').value);
+    startRingCountdown(ms);
+    pollingTimer = setTimeout(() => {
+      fetchNow();
+      scheduleNext();
+    }, ms);
+  }
+
+  // ─── Anneau de progression ───────────────────────────────────────────────────
+  function setRingProgress(ratio) {
+    const circumference = 38;
+    document.getElementById('ring-progress').style.strokeDashoffset =
+      circumference - ratio * circumference;
+  }
+
+  function startRingCountdown(ms) {
+    clearInterval(countdownTimer);
+    const steps = 30;
+    const stepMs = ms / steps;
+    let i = 0;
+    setRingProgress(0);
+    countdownTimer = setInterval(() => {
+      i++;
+      setRingProgress(i / steps);
+      if (i >= steps) clearInterval(countdownTimer);
+    }, stepMs);
+  }
+
+  // ─── Fetch principal ─────────────────────────────────────────────────────────
+  async function fetchNow() {
+    setStatus('loading', 'Chargement...');
+    const apiUrl = document.getElementById('api-url').value.trim();
+
+    try {
+      // L'URL peut inclure la pièce en query param ou en path selon votre API
+      // Exemple : GET /api/sensors?room=salon  ou  GET /api/sensors/salon
+      const url = `${apiUrl}?room=${currentRoom}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // Supporte { temperature, humidity, luminosity, CO2, presence }
+      // ou { data: { ... } } ou { rooms: { salon: {...} } }
+      const roomData = data[currentRoom] ?? data.data ?? data;
+      afficherDonnees(roomData);
+      usingDemo = false;
+      setStatus('ok', 'Connecté');
+      document.getElementById('mode-label').textContent = 'API Live';
+      document.getElementById('error-msg').textContent = '';
+
+    } catch (err) {
+      // Fallback démo
+      afficherDonnees(demoData[currentRoom]);
+      usingDemo = true;
+      setStatus('error', 'API inaccessible');
+      document.getElementById('mode-label').textContent = 'Démo';
+      document.getElementById('error-msg').textContent = `⚠ ${err.message} — données simulées`;
+    }
+
+    // Horodatage
+    document.getElementById('last-update').textContent =
+      new Date().toLocaleTimeString('fr-FR');
+  }
+
+  // ─── Affichage des données ───────────────────────────────────────────────────
+  function afficherDonnees(d) {
+    if (!d) return;
+
+    // Température (0–50°C)
+    setValue('temp-value', d.temperature, '°C');
+    setBar('temp-bar', d.temperature, 0, 40);
+    setCardStatus('temp-status', d.temperature,
+      { ok: [18, 26], warn: [15, 30] },
+      ['Trop froid', 'Idéal', 'Chaud', 'Très chaud']
+    );
+
+    // Humidité (0–100%)
+    setValue('humidity-value', d.humidity, '%');
+    setBar('humidity-bar', d.humidity, 0, 100);
+    setCardStatus('humidity-status', d.humidity,
+      { ok: [40, 60], warn: [30, 70] },
+      ['Trop sec', 'Idéal', 'Humide', 'Trop humide']
+    );
+
+    // Luminosité (0–20000 lx)
+    setValue('lumen-value', d.luminosity, 'lx');
+    setBar('lumen-bar', d.luminosity, 0, 20000);
+    const luxLabel = d.luminosity < 100 ? 'Obscurité' :
+                     d.luminosity < 500 ? 'Faible éclairage' :
+                     d.luminosity < 5000 ? 'Lumière intérieure' : 'Très lumineux';
+    document.getElementById('lumen-status').textContent = luxLabel;
+    document.getElementById('lumen-status').className = 'card-status';
+
+    // CO2 (300–2000+ ppm)
+    setValue('CO2-value', d.CO2, 'ppm');
+    setBar('co2-bar', d.CO2, 300, 2000);
+    const co2El = document.getElementById('co2-status');
+    if (d.CO2 < 600) { co2El.textContent = 'Excellent'; co2El.className = 'card-status ok'; }
+    else if (d.CO2 < 1000) { co2El.textContent = 'Acceptable'; co2El.className = 'card-status'; }
+    else if (d.CO2 < 1500) { co2El.textContent = 'Aérer la pièce'; co2El.className = 'card-status warn'; }
+    else { co2El.textContent = 'Niveau critique !'; co2El.className = 'card-status danger'; }
+
+    // Présence
+    const pDot = document.getElementById('presence-dot');
+    const pVal = document.getElementById('presence-value');
+    const pStat = document.getElementById('presence-status');
+    const present = Boolean(d.presence);
+    pDot.className = 'presence-dot' + (present ? ' yes' : '');
+    pVal.textContent = present ? 'Occupé' : 'Vacant';
+    pStat.textContent = present ? 'Mouvement détecté' : 'Aucun mouvement';
+    pStat.className = 'card-status ' + (present ? 'ok' : '');
+  }
+
+  function setValue(id, val, unit) {
+    const el = document.getElementById(id);
+    if (val === undefined || val === null) { el.textContent = '--'; return; }
+    el.textContent = typeof val === 'number' ? val.toFixed(val % 1 === 0 ? 0 : 1) : val;
+  }
+
+  function setBar(id, val, min, max) {
+    const pct = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100));
+    document.getElementById(id).style.width = pct + '%';
+  }
+
+  function setCardStatus(id, val, thresholds, labels) {
+    const el = document.getElementById(id);
+    if (val < thresholds.warn[0]) { el.textContent = labels[0]; el.className = 'card-status danger'; }
+    else if (val < thresholds.ok[0]) { el.textContent = labels[0]; el.className = 'card-status warn'; }
+    else if (val <= thresholds.ok[1]) { el.textContent = labels[1]; el.className = 'card-status ok'; }
+    else if (val <= thresholds.warn[1]) { el.textContent = labels[2]; el.className = 'card-status warn'; }
+    else { el.textContent = labels[3]; el.className = 'card-status danger'; }
+  }
+
+  function setStatus(type, text) {
+    const dot = document.getElementById('status-dot');
+    dot.className = 'status-dot ' + type;
+    document.getElementById('status-text').textContent = text;
+  }
+
+  // ─── Init ────────────────────────────────────────────────────────────────────
+  updateIntervalLabel();
+  fetchNow();
+  scheduleNext();
+</script>
+</body>
+</html>
