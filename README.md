@@ -1,6 +1,6 @@
 <img width="1365" height="639" alt="dashboard" src="https://github.com/user-attachments/assets/3573f555-6504-4f78-881f-7ba5e8089f1b" />
 
-# Tableau de Bord Domotique avec Arduino et Raspberry Pi
+# Tableau de bord domotique avec arduino et raspberry pi
 
 Ce projet transforme votre tableau de bord domotique statique en un système réel utilisant un Arduino pour la collecte de données de capteurs et un Raspberry Pi comme serveur API.
 
